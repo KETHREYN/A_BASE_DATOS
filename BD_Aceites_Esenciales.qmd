@@ -1,0 +1,71 @@
+---
+title: "ANÁLSIS DE DATOS_AE"
+author: "KATHERYN"
+format: html
+---
+#importar datos
+#importar datos de googlesheets a R studio
+```{r}
+library(googlesheets4)
+library(tidyverse)
+library(emmeans)
+library(multcomp)
+```
+#importar datos
+
+##  google
+
+```{r}
+url <- "https://docs.google.com/spreadsheets/d/19d7KBGH3Djw3A_TGrvPLCG1xXbWdwzRSgijFsQGXBik/edit?gid=1455871093#gid=1455871093"
+gs <- url %>% 
+  as_sheets_id()
+fb <- gs %>% 
+  range_read(sheet = "fb") %>% 
+    mutate(
+    MUESTRA = factor(MUESTRA),
+    REP = factor(REP))
+
+str(fb)
+```
+#Modelo estadístico
+$$ Y =\mu + MUESTRA + REP + MUESTRA*REP + e $$
+
+#ANOVA
+```{r}
+modelo <- aov (ABTS~MUESTRA,data = fb)
+anova (modelo)
+plot(modelo)
+```
+##Comparación de medias
+
+```{r}
+emm <- emmeans(modelo,~MUESTRA)
+cm <- cld(emm, alpha = 0.05, Letters = letters, adjust = "tukey")
+cm
+```
+
+## Gráfico
+```{r}
+library(inti) 
+
+plot_smr(data = cm
+         , x = "MUESTRA"
+         , y = "emmean"
+         , error = "SE"
+         , sig = ".group"
+         )
+```
+
+# PCA
+
+```{r}
+rs <- fb %>%
+  group_by(MUESTRA) %>%
+  summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)))
+
+library(FactoMineR)
+
+mv <- rs %>% 
+  PCA(scale.unit = T, quali.sup = c(1))
+```
+
